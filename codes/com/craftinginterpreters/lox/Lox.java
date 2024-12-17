@@ -8,7 +8,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
-import java.util.Scanner;
 
 public class Lox {
 
@@ -42,16 +41,17 @@ public class Lox {
             if (line == null)
                 break;
             run(line);
+            hadError = false;
         }
     }
 
     private static void run(String source) {
-        // Scanner scanner = new Scanner(source);
-        // List<Token> tokens = scanner.scanTokens();
+        Scanner scanner = new Scanner(source);
+        List<Token> tokens = scanner.scanTokens();
 
-        // for (Token token : tokens) {
-        // System.out.println(token);
-        // }
+        for (Token token : tokens) {
+            System.out.println(token);
+        }
         System.out.println(source);
     }
 
