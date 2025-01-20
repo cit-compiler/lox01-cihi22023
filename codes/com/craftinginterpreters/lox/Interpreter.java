@@ -1,11 +1,14 @@
 package com.craftinginterpreters.lox;
 
-class Interpreter implements Expr.Visitor<Object> {
+import java.util.List;
 
-    void interpret(Expr expression) {
+class Interpreter implements Expr.Visitor<Object>,
+        Stmt.Visitor<Void> {
+    void interpret(List<Stmt> statements) {
         try {
-            Object value = evaluate(expression);
-            System.out.println(stringify(value));
+            for (Stmt statement : statements) {
+                execute(statement);
+            }
         } catch (RuntimeError error) {
             Lox.runtimeError(error);
         }
@@ -21,57 +24,6 @@ class Interpreter implements Expr.Visitor<Object> {
         return evaluate(expr.expression);
     }
 
-    private Object evaluate(Expr expr) {
-        return expr.accept(this);
-    }
-
-    @Override
-    public Object visitBinaryExpr(Expr.Binary expr) {
-        Object left = evaluate(expr.left);
-        Object right = evaluate(expr.right);
-
-        switch (expr.operator.type) {
-            case GREATER:
-                checkNumberOperands(expr.operator, left, right);
-                return (double) left > (double) right;
-            case GREATER_EQUAL:
-                checkNumberOperands(expr.operator, left, right);
-                return (double) left >= (double) right;
-            case LESS:
-                checkNumberOperands(expr.operator, left, right);
-                return (double) left < (double) right;
-            case LESS_EQUAL:
-                checkNumberOperands(expr.operator, left, right);
-                return (double) left <= (double) right;
-            case MINUS:
-                checkNumberOperands(expr.operator, left, right);
-                return (double) left - (double) right;
-            case PLUS:
-                if (left instanceof Double && right instanceof Double) {
-                    return (double) left + (double) right;
-                }
-
-                if (left instanceof String && right instanceof String) {
-                    return (String) left + (String) right;
-                }
-                throw new RuntimeError(expr.operator,
-                        "Operands must be two numbers or two strings.");
-
-            case SLASH:
-                checkNumberOperands(expr.operator, left, right);
-                return (double) left / (double) right;
-            case STAR:
-                checkNumberOperands(expr.operator, left, right);
-                return (double) left * (double) right;
-            case BANG_EQUAL:
-                return !isEqual(left, right);
-            case EQUAL_EQUAL:
-                return isEqual(left, right);
-        }
-        // Unreachable.
-        return null;
-    }
-
     @Override
     public Object visitUnaryExpr(Expr.Unary expr) {
         Object right = evaluate(expr.right);
@@ -83,7 +35,6 @@ class Interpreter implements Expr.Visitor<Object> {
                 checkNumberOperand(expr.operator, right);
                 return -(double) right;
         }
-
         // Unreachable.
         return null;
     }
@@ -132,6 +83,74 @@ class Interpreter implements Expr.Visitor<Object> {
         }
 
         return object.toString();
+    }
+
+    private Object evaluate(Expr expr) {
+        return expr.accept(this);
+    }
+
+    private void execute(Stmt stmt) {
+        stmt.accept(this);
+    }
+
+    @Override
+    public Void visitExpressionStmt(Stmt.Expression stmt) {
+        evaluate(stmt.expression);
+        return null;
+    }
+
+    @Override
+    public Void visitPrintStmt(Stmt.Print stmt) {
+        Object value = evaluate(stmt.expression);
+        System.out.println(stringify(value));
+        return null;
+    }
+
+    @Override
+    public Object visitBinaryExpr(Expr.Binary expr) {
+        Object left = evaluate(expr.left);
+        Object right = evaluate(expr.right);
+
+        switch (expr.operator.type) {
+            case BANG_EQUAL:
+                return !isEqual(left, right);
+            case EQUAL_EQUAL:
+                return isEqual(left, right);
+            case GREATER:
+                checkNumberOperands(expr.operator, left, right);
+                return (double) left > (double) right;
+            case GREATER_EQUAL:
+                checkNumberOperands(expr.operator, left, right);
+                return (double) left >= (double) right;
+            case LESS:
+                checkNumberOperands(expr.operator, left, right);
+                return (double) left < (double) right;
+            case LESS_EQUAL:
+                checkNumberOperands(expr.operator, left, right);
+                return (double) left <= (double) right;
+            case MINUS:
+                checkNumberOperands(expr.operator, left, right);
+                return (double) left - (double) right;
+            case PLUS:
+                if (left instanceof Double && right instanceof Double) {
+                    return (double) left + (double) right;
+                }
+
+                if (left instanceof String && right instanceof String) {
+                    return (String) left + (String) right;
+                }
+                throw new RuntimeError(expr.operator,
+                        "Operands must be two numbers or two strings.");
+            case SLASH:
+                checkNumberOperands(expr.operator, left, right);
+                return (double) left / (double) right;
+            case STAR:
+                checkNumberOperands(expr.operator, left, right);
+                return (double) left * (double) right;
+        }
+
+        // Unreachable.
+        return null;
     }
 
 }
